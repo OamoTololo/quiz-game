@@ -43,6 +43,12 @@ body {
     font-size: 2.5rem;
 }
 
+#start-screen p {
+    color: #666;
+    margin-bottom: 30px;
+    font-size: 1.1rem;
+}
+
 .quiz-header {
     margin-bottom: 2rem;
 }
@@ -109,4 +115,70 @@ body {
     background-color: #e86a33;
     width: 0;
     transition: width 0.3s ease;
+}
+
+/* Result Screen */
+#results-screen h1 {
+    color: #e86a33;
+    margin-bottom: 30px;
+}
+
+.results-info {
+    background-color: #f8f0e5;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.results-info p {
+    font-size: 1.2rem;
+    color: #333;
+    margin-bottom: 1rem;
+}
+
+#result-message {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #e86a33;
+}
+
+button {
+    background-color: #e86a33;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #d45b28;
+}
+
+
+/* Responsive Design */
+@media (max-width: 500px) {
+    /* when we hit 500 pixels and below, implement the styles below */
+    .screen {
+        padding: 1rem;
+    }
+
+    #start-screen h1 {
+        font-size: 2rem;
+    }
+
+    #question-text {
+        font-size: 1.3rem;
+    }
+
+    .answer-btn {
+        padding: 12px;
+    }
+
+    button {
+        padding: 12px 25px;
+        font-size: 1rem;
+    }
 }
