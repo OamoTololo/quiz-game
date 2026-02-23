@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Question {{ questionNumber }}{% endblock %}
+
+{% block body %}
+    <div class="container">
+        <h2>{{ question.text }}</h2>
+
+        <p>Question {{ questionNumber }} of {{ totalQuestions }}</p>
+        <p>{{ score }}</p>
+
+        <form action="{{ path('quiz_answer') }}" method="post">
+            {% for answer in question.answers %}
+                <div>
+                    <input type="radio" name="answer" value="{{ answer }}" required>
+                    <label for="">{{ answer }}</label>
+                </div>
+            {% endfor %}
+
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+{% endblock %}
