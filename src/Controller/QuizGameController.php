@@ -36,9 +36,7 @@ final class QuizGameController extends AbstractController
     public function quizQuestion(Request $request, QuizLoggerService $quizLogger): Response
     {
         $session = $request->getSession();
-
         $questions = $this->getQuestions();
-
         $currentIndex = $session->get('current_question', 0);
 
         // Error protection
@@ -47,6 +45,7 @@ final class QuizGameController extends AbstractController
                 'current_index' => $currentIndex,
                 'total_questions' => count($questions),
             ]);
+
             return $this->redirectToRoute('quiz_results');
         }
 
@@ -61,12 +60,9 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz/answer", name: 'quiz_answer', methods: ['POST'])]
-    public function answer(Request $request, QuizLoggerService $quizLogger): Response
+    public function answer(Request $request, QuizLoggerService $quizLogger, SessionInterface $session): Response
     {
-        $session = $request->getSession();
-
         $questions = $this->getQuestions();
-
         $currentIndex = $session->get('current_question');
 
         if (!isset($questions[$currentIndex])) {
@@ -87,9 +83,10 @@ final class QuizGameController extends AbstractController
             return $this->redirectToRoute('quiz_results');
         }
 
-        $correctAnswer = $questions[$currentIndex]['correct_answer'] === $selectedAnswer;
+        $correctAnswer = $questions[$currentIndex]['correct_answer'];
+        $isCorrect = $selectedAnswer === $correctAnswer;
 
-        if ($correctAnswer === $selectedAnswer) {
+        if ($isCorrect) {
             $session->set('score', $session->get('score') + 1);
         }
 
@@ -101,12 +98,10 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz/results", name: 'quiz_results')]
-    public function results(Request $request, QuizLoggerService $quizLogger): Response
+    public function results(SessionInterface $session, QuizLoggerService $quizLogger): Response
     {
-        $session = $request->getSession();
 
         $score = $session->get('score');
-
         $total = count($this->getQuestions());
 
         $quizLogger->logQuizFinished($score, $total);
@@ -115,6 +110,19 @@ final class QuizGameController extends AbstractController
             'score' => $score,
             'total' => $total,
         ]);
+    }
+
+    #[Route("/quiz/restart", name: 'quiz_restart')]
+    public function restartQuiz(SessionInterface $session, QuizLoggerService $quizLogger): Response
+    {
+        // Reset the quiz
+        $session->set('score', 0);
+        $session->set('current_question', 0);
+
+        // Log the restart
+        $quizLogger->logQuizRestart();
+
+        return $this->redirectToRoute('quiz_question');
     }
 
     public function getQuestions(): array
