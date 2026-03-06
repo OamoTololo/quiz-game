@@ -41,7 +41,12 @@ final class QuizGameController extends AbstractController
 
         $currentIndex = $session->get('current_question', 0);
 
+        // Error protection
         if (!isset($questions[$currentIndex])) {
+            $quizLogger->logError("Question index does not exist", [
+                'current_index' => $currentIndex,
+                'total_questions' => count($questions),
+            ]);
             return $this->redirectToRoute('quiz_results');
         }
 
@@ -64,11 +69,27 @@ final class QuizGameController extends AbstractController
 
         $currentIndex = $session->get('current_question');
 
+        if (!isset($questions[$currentIndex])) {
+            $quizLogger->logError("Answer submitted for non-existing question", [
+                'current_index' => $currentIndex,
+            ]);
+
+            return $this->redirectToRoute('quiz_results');
+        }
+
         $selectedAnswer = $request->request->get('answer');
+
+        if (!$selectedAnswer) {
+            $quizLogger->logError("User submitted empty answer", [
+                'question_number' => $currentIndex + 1,
+            ]);
+
+            return $this->redirectToRoute('quiz_results');
+        }
 
         $correctAnswer = $questions[$currentIndex]['correct_answer'] === $selectedAnswer;
 
-        if ($questions[$currentIndex]['correct_answer'] === $selectedAnswer) {
+        if ($correctAnswer === $selectedAnswer) {
             $session->set('score', $session->get('score') + 1);
         }
 
