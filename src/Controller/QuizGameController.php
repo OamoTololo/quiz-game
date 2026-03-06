@@ -2,6 +2,7 @@
 
 namespace App\Controller;
 
+use App\Service\QuizLogger;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -12,27 +13,27 @@ use Symfony\Component\Routing\Attribute\Route;
 final class QuizGameController extends AbstractController
 {
     #[Route('/', name: 'quiz_home')]
-    public function home(LoggerInterface $logger): Response
+    public function home(QuizLogger $quizLogger): Response
     {
-        $logger->info('User visited the homepage');
+        $quizLogger->logHomePageVisit();
 
         return $this->render('quiz_game/home.html.twig');
     }
 
     #[Route("/quiz", name: 'quiz_start')]
-    public function startQuiz(SessionInterface $session, LoggerInterface $logger): Response
+    public function startQuiz(SessionInterface $session, QuizLogger $quizLogger): Response
     {
         // Reset session
         $session->set('score', 0);
         $session->set('current_question', 0);
 
-        $logger->info('User started the quiz');
+        $quizLogger->logQuizStart();
 
         return $this->redirectToRoute('quiz_question');
     }
 
     #[Route("/quiz/question", name: 'quiz_question')]
-    public function quizQuestion(Request $request, LoggerInterface $logger): Response
+    public function quizQuestion(Request $request, QuizLogger $quizLogger): Response
     {
         $session = $request->getSession();
 
@@ -44,9 +45,7 @@ final class QuizGameController extends AbstractController
             return $this->redirectToRoute('quiz_results');
         }
 
-        $logger->info('Showing question to user', [
-            'question_number' => $currentIndex + 1,
-        ]);
+        $quizLogger->logQuestionDisplayed($currentIndex + 1);
 
         return $this->render('quiz_game/question.html.twig', [
             'question' => $questions[$currentIndex],
@@ -57,7 +56,7 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz/answer", name: 'quiz_answer', methods: ['POST'])]
-    public function answer(Request $request, LoggerInterface $logger): Response
+    public function answer(Request $request, QuizLogger $quizLogger): Response
     {
         $session = $request->getSession();
 
@@ -67,18 +66,13 @@ final class QuizGameController extends AbstractController
 
         $selectedAnswer = $request->request->get('answer');
 
-        $isCorrect = $questions[$currentIndex]['correct_answer'] === $selectedAnswer;
+        $correctAnswer = $questions[$currentIndex]['correct_answer'] === $selectedAnswer;
 
         if ($questions[$currentIndex]['correct_answer'] === $selectedAnswer) {
             $session->set('score', $session->get('score') + 1);
         }
 
-        $logger->info('User answered question', [
-            'question_number' => $currentIndex + 1,
-            'selected_answer' => $selectedAnswer,
-            'correct_answer' => $questions[$currentIndex]['correct_answer'],
-            'is_correct' => $isCorrect,
-        ]);
+        $quizLogger->logAnswer($currentIndex + 1, $selectedAnswer, $correctAnswer);
 
         $session->set('current_question', $currentIndex + 1);
 
@@ -86,7 +80,7 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz/results", name: 'quiz_results')]
-    public function results(Request $request, LoggerInterface $logger): Response
+    public function results(Request $request, QuizLogger $quizLogger): Response
     {
         $session = $request->getSession();
 
@@ -94,10 +88,7 @@ final class QuizGameController extends AbstractController
 
         $total = count($this->getQuestions());
 
-        $logger->info('User finished quiz', [
-            'score' => $score,
-            'total' => $total,
-        ]);
+        $quizLogger->logQuizFinished($score, $total);
 
         return $this->render('quiz_game/results.html.twig', [
             'score' => $score,
