@@ -2,7 +2,7 @@
 
 namespace App\Controller;
 
-use App\Service\QuizLogger;
+use App\Service\QuizLoggerService;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,7 +13,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final class QuizGameController extends AbstractController
 {
     #[Route('/', name: 'quiz_home')]
-    public function home(QuizLogger $quizLogger): Response
+    public function home(QuizLoggerService $quizLogger): Response
     {
         $quizLogger->logHomePageVisit();
 
@@ -21,7 +21,7 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz", name: 'quiz_start')]
-    public function startQuiz(SessionInterface $session, QuizLogger $quizLogger): Response
+    public function startQuiz(SessionInterface $session, QuizLoggerService $quizLogger): Response
     {
         // Reset session
         $session->set('score', 0);
@@ -33,7 +33,7 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz/question", name: 'quiz_question')]
-    public function quizQuestion(Request $request, QuizLogger $quizLogger): Response
+    public function quizQuestion(Request $request, QuizLoggerService $quizLogger): Response
     {
         $session = $request->getSession();
 
@@ -56,7 +56,7 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz/answer", name: 'quiz_answer', methods: ['POST'])]
-    public function answer(Request $request, QuizLogger $quizLogger): Response
+    public function answer(Request $request, QuizLoggerService $quizLogger): Response
     {
         $session = $request->getSession();
 
@@ -80,7 +80,7 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz/results", name: 'quiz_results')]
-    public function results(Request $request, QuizLogger $quizLogger): Response
+    public function results(Request $request, QuizLoggerService $quizLogger): Response
     {
         $session = $request->getSession();
 
