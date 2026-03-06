@@ -124,7 +124,7 @@ final class QuizGameController extends AbstractController
         $session->set('current_question', 0);
 
         // Log the restart
-        $quizLogger->logQuizRestart();
+//        $quizLogger->logQuizRestart();
 
         return $this->redirectToRoute('quiz_question');
     }
