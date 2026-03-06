@@ -51,8 +51,11 @@ final class QuizGameController extends AbstractController
     public function answer(Request $request): Response
     {
         $session = $request->getSession();
+
         $questions = $this->getQuestions();
+
         $currentIndex = $session->get('current_question');
+
         $selectedAnswer = $request->request->get('answer');
 
         if ($questions[$currentIndex]['correct_answer'] === $selectedAnswer) {
@@ -68,7 +71,9 @@ final class QuizGameController extends AbstractController
     public function results(Request $request): Response
     {
         $session = $request->getSession();
+
         $score = $session->get('score');
+
         $total = count($this->getQuestions());
 
         return $this->render('quiz_game/results.html.twig', [
