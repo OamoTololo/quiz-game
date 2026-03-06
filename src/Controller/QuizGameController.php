@@ -2,9 +2,12 @@
 
 namespace App\Controller;
 
+use App\Event\QuestionAnsweredEvent;
+use App\Event\QuizStartedEvent;
 use App\Service\QuizLoggerService;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -21,19 +24,23 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz", name: 'quiz_start')]
-    public function startQuiz(SessionInterface $session, QuizLoggerService $quizLogger): Response
+    public function startQuiz(SessionInterface $session, EventDispatcher $dispatcher): Response
     {
         // Reset session
         $session->set('score', 0);
         $session->set('current_question', 0);
 
-        $quizLogger->logQuizStart();
+        // Dispatch quiz started event
+        $dispatcher->dispatch(
+            new QuizStartedEvent($session->getId()),
+            QuizStartedEvent::class
+        );
 
         return $this->redirectToRoute('quiz_question');
     }
 
     #[Route("/quiz/question", name: 'quiz_question')]
-    public function quizQuestion(Request $request, QuizLoggerService $quizLogger): Response
+    public function quizQuestion(Request $request, EventDispatcher $dispatcher): Response
     {
         $session = $request->getSession();
         $questions = $this->getQuestions();
@@ -41,15 +48,8 @@ final class QuizGameController extends AbstractController
 
         // Error protection
         if (!isset($questions[$currentIndex])) {
-            $quizLogger->logError("Question index does not exist", [
-                'current_index' => $currentIndex,
-                'total_questions' => count($questions),
-            ]);
-
             return $this->redirectToRoute('quiz_results');
         }
-
-        $quizLogger->logQuestionDisplayed($currentIndex + 1);
 
         return $this->render('quiz_game/question.html.twig', [
             'question' => $questions[$currentIndex],
@@ -60,29 +60,20 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz/answer", name: 'quiz_answer', methods: ['POST'])]
-    public function answer(Request $request, QuizLoggerService $quizLogger, SessionInterface $session): Response
+    public function answer(
+        Request $request,
+        SessionInterface $session,
+        EventDispatcher $dispatcher
+    ): Response
     {
         $questions = $this->getQuestions();
         $currentIndex = $session->get('current_question');
 
         if (!isset($questions[$currentIndex])) {
-            $quizLogger->logError("Answer submitted for non-existing question", [
-                'current_index' => $currentIndex,
-            ]);
-
             return $this->redirectToRoute('quiz_results');
         }
 
         $selectedAnswer = $request->request->get('answer');
-
-        if (!$selectedAnswer) {
-            $quizLogger->logError("User submitted empty answer", [
-                'question_number' => $currentIndex + 1,
-            ]);
-
-            return $this->redirectToRoute('quiz_results');
-        }
-
         $correctAnswer = $questions[$currentIndex]['correct_answer'];
         $isCorrect = $selectedAnswer === $correctAnswer;
 
@@ -90,7 +81,16 @@ final class QuizGameController extends AbstractController
             $session->set('score', $session->get('score') + 1);
         }
 
-        $quizLogger->logAnswer($currentIndex + 1, $selectedAnswer, $correctAnswer);
+        $dispatcher->dispatch(
+            new QuestionAnsweredEvent(
+                $session->getId(),
+                $currentIndex + 1,
+                $selectedAnswer,
+                $correctAnswer,
+                $isCorrect
+            ),
+            QuestionAnsweredEvent::NAME
+        );
 
         $session->set('current_question', $currentIndex + 1);
 
@@ -98,13 +98,17 @@ final class QuizGameController extends AbstractController
     }
 
     #[Route("/quiz/results", name: 'quiz_results')]
-    public function results(SessionInterface $session, QuizLoggerService $quizLogger): Response
+    public function results(SessionInterface $session, EventDispatcher $dispatcher): Response
     {
 
         $score = $session->get('score');
         $total = count($this->getQuestions());
 
-        $quizLogger->logQuizFinished($score, $total);
+        // Dispatch the quiz finished event
+        $dispatcher->dispatch(
+            new QuizStartedEvent($session->getId(), $score, $total),
+            QuizStartedEvent::class
+        );
 
         return $this->render('quiz_game/results.html.twig', [
             'score' => $score,
